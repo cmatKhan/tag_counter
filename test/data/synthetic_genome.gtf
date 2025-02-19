@@ -1,0 +1,11 @@
+##gff-version 2
+##source-version rtracklayer 1.64.0
+##date 2025-02-17
+chr1	synthetic	sequence_feature	964	1263	.	+	.	feature "gene"; gene_id "gene_chr1_1"
+chr1	synthetic	sequence_feature	965	1264	.	-	.	feature "gene"; gene_id "gene_chr1_2"
+chr2	synthetic	sequence_feature	1837	2136	.	+	.	feature "gene"; gene_id "gene_chr2_1"
+chr2	synthetic	sequence_feature	1997	2296	.	-	.	feature "gene"; gene_id "gene_chr2_2"
+chr2	synthetic	sequence_feature	1197	1496	.	+	.	feature "gene"; gene_id "gene_chr2_3"
+chr3	synthetic	sequence_feature	3450	3749	.	+	.	feature "gene"; gene_id "gene_chr3_1"
+chr3	synthetic	sequence_feature	3605	3904	.	-	.	feature "gene"; gene_id "gene_chr3_2"
+chr3	synthetic	sequence_feature	2650	2949	.	-	.	feature "gene"; gene_id "gene_chr3_3"

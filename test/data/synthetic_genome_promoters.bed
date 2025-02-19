@@ -1,0 +1,8 @@
+chr1	463	963	gene_chr1_1	100	+
+chr1	1264	1764	gene_chr1_2	100	-
+chr2	1336	1836	gene_chr2_1	100	+
+chr2	2296	2796	gene_chr2_2	100	-
+chr2	696	1196	gene_chr2_3	100	+
+chr3	2949	3449	gene_chr3_1	100	+
+chr3	3904	4404	gene_chr3_2	100	-
+chr3	2949	3449	gene_chr3_3	100	-

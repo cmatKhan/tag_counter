@@ -1,0 +1,11 @@
+[package]
+name = "tag_counter"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+extendr-api = "0.7.1"
+pyo3 = "0.23.4"
+serde = {version = "1.0.217", features = ["derive"] }
+statrs = "0.18.0"
+thiserror = "2.0.11"
