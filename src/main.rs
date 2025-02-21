@@ -102,16 +102,16 @@ fn write_counts(
                 // treatment_tag_total with a pseudocount of 0.1
                 // if background_counts and background_tag_total are both none, then
                 // do not instantiate a RegionStats struct
-                let region_stats = if background_counts.is_some() && background_tag_total.is_some()
-                {
-                    Some(RegionStats::new(
-                        background_tag_total.unwrap(),
-                        total_counts_map.get(filename).copied().unwrap_or(0) as u32,
-                        PSEUDOCOUNT,
-                    ))
-                } else {
-                    None
-                };
+                let region_stats =
+                    background_tag_total
+                        .zip(background_counts)
+                        .map(|(bg_total, _)| {
+                            RegionStats::new(
+                                bg_total,
+                                total_counts_map.get(filename).copied().unwrap_or(0) as u32,
+                                PSEUDOCOUNT,
+                            )
+                        });
 
                 // if region_stats is some, then compute the enrichment and poisson p-value
                 // and write them to the file
@@ -144,21 +144,23 @@ fn write_counts(
             if let Some(file) = combined_file.as_mut() {
                 let combined_count: u32 = counts.iter().sum();
 
-                let region_stats = if background_counts.is_some() && background_tag_total.is_some()
-                {
-                    Some(RegionStats::new(
-                        background_tag_total.unwrap(),
-                        total_counts_map
-                            .values()
-                            .copied()
-                            .sum::<u64>()
-                            .try_into()
-                            .expect("Error: Total treatment tags exceed maximum value for u32."),
-                        PSEUDOCOUNT,
-                    ))
-                } else {
-                    None
-                };
+                let region_stats =
+                    background_tag_total
+                        .zip(background_counts)
+                        .map(|(bg_total, _)| {
+                            RegionStats::new(
+                                bg_total,
+                                total_counts_map
+                                    .values()
+                                    .copied()
+                                    .sum::<u64>()
+                                    .try_into()
+                                    .expect(
+                                        "Error: Total treatment tags exceed maximum value for u32.",
+                                    ),
+                                PSEUDOCOUNT,
+                            )
+                        });
 
                 if let Some(stats) = region_stats {
                     let enrichment_score = stats.enrichment(background_count, combined_count);
