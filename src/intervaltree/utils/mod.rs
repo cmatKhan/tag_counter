@@ -1,7 +1,7 @@
 /*
 Copyright (c) 2016 Johannes Köster, the Rust-Bio team, Google Inc.
 
-See ../LICENSE.md for full MIT license 
+See ../LICENSE.md for full MIT license
 */
 
 //! This module defines a newtype `Interval` for `std::ops::Range`, which will panic if `end` < `start`.
@@ -30,8 +30,8 @@ See ../LICENSE.md for full MIT license
 
 pub mod errors;
 
-use std::ops::{Deref, Range};
 use serde::{Deserialize, Serialize};
+use std::ops::{Deref, Range};
 
 pub use self::errors::{Error, Result};
 
@@ -64,7 +64,7 @@ impl<N: Ord + Clone> From<Range<N>> for Interval<N> {
 
 /// Convert a reference to a `Range` to an interval by cloning. This conversion will panic if the
 /// `Range` has end < start
-impl<'a, N: Ord + Clone> From<&'a Range<N>> for Interval<N> {
+impl<N: Ord + Clone> From<&Range<N>> for Interval<N> {
     fn from(r: &Range<N>) -> Self {
         match Interval::new(r.clone()) {
             Ok(interval) => interval,

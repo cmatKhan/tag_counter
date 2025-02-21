@@ -4,8 +4,8 @@
 // except according to those terms.
 
 //! Error definitions for the `interval` module.
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use serde::{Serialize, Deserialize};
 
 #[derive(
     Error, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize, Deserialize,

@@ -1,0 +1,5 @@
+{
+    "control": ["tests/data/control_sorted_r1_5p_cov.txt"],
+    "tf1": ["tests/data/treatment_sorted_r1_5p_cov.txt"],
+    "tf2": ["tests/data/treatment_sorted_r1_5p_cov.txt", "tests/data/treatmentcopy_sorted_r1_5p_cov.txt"]
+}
