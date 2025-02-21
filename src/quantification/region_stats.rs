@@ -93,21 +93,108 @@ mod tests {
 
     #[test]
     fn test_enrichment_valid() {
-        let result = enrichment(1000, 2000, 50, 100, 0.1);
+        let tag_counts = RegionStats {
+            total_control_tags: 1000,
+            total_treatment_tags: 2000,
+            pseudocount: 0.1,
+        };
+
+        let result = tag_counts.enrichment(50, 100);
         assert!(result.is_ok());
         println!("Enrichment: {:?}", result);
-        assert!((result.unwrap() - 0.998004) < 1e-6);
+        assert!((result.unwrap() - 0.998004).abs() < 1e-6);
     }
 
     #[test]
     fn test_enrichment_zero_control_tags() {
-        let result = enrichment(0, 2000, 50, 100, 0.1);
+        let tag_counts = RegionStats {
+            total_control_tags: 0,
+            total_treatment_tags: 2000,
+            pseudocount: 0.1,
+        };
+
+        let result = tag_counts.enrichment(50, 100);
         assert!(matches!(result, Err(EnrichmentError::DivisionByZero)));
     }
 
     #[test]
     fn test_enrichment_nan_or_infinite() {
-        let result = enrichment(1000, 2000, 0, 0, 0.0); // This may cause division by zero
+        let tag_counts = RegionStats {
+            total_control_tags: 1000,
+            total_treatment_tags: 2000,
+            pseudocount: 0.0,
+        };
+
+        let result = tag_counts.enrichment(0, 0); // This may cause division by zero
         assert!(matches!(result, Err(EnrichmentError::InvalidComputation)));
+    }
+
+    #[test]
+    fn test_poisson_pval_valid_1() {
+        let tag_counts = RegionStats {
+            total_control_tags: 100,
+            total_treatment_tags: 10,
+            pseudocount: 0.1,
+        };
+
+        let result = tag_counts.poisson_pval(5, 2);
+        assert!(result.is_ok());
+        let p_val = result.unwrap();
+        println!("Test 1 - Poisson p-value: {:.6}", p_val);
+        assert!((p_val - 0.01515723).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_poisson_pval_valid_2() {
+        let tag_counts = RegionStats {
+            total_control_tags: 200,
+            total_treatment_tags: 20,
+            pseudocount: 0.1,
+        };
+
+        let result = tag_counts.poisson_pval(10, 4);
+        assert!(result.is_ok());
+        let p_val = result.unwrap();
+        println!("Test 2 - Poisson p-value: {:.6}", p_val);
+        assert!((p_val - 0.003815442).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_poisson_pval_zero_control_tags() {
+        let tag_counts = RegionStats {
+            total_control_tags: 0,
+            total_treatment_tags: 10,
+            pseudocount: 0.1,
+        };
+
+        let result = tag_counts.poisson_pval(5, 2);
+        assert!(matches!(result, Err(PoissonPvalError::DivisionByZero)));
+    }
+
+    #[test]
+    fn test_poisson_pval_zero_treatment_tags() {
+        let tag_counts = RegionStats {
+            total_control_tags: 100,
+            total_treatment_tags: 0,
+            pseudocount: 0.1,
+        };
+
+        let result = tag_counts.poisson_pval(5, 2);
+        assert!(matches!(result, Err(PoissonPvalError::DivisionByZero)));
+    }
+
+    #[test]
+    fn test_poisson_pval_invalid_mu() {
+        let tag_counts = RegionStats {
+            total_control_tags: 100,
+            total_treatment_tags: 10,
+            pseudocount: 0.0,
+        };
+
+        let result = tag_counts.poisson_pval(0, 2);
+        assert!(matches!(
+            result,
+            Err(PoissonPvalError::InvalidPoissonParameter)
+        ));
     }
 }

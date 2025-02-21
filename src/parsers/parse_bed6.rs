@@ -68,7 +68,7 @@ pub fn parse_bed6<P: AsRef<Path>>(
 
         region_map
             .entry(chr)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(interval);
     }
 

@@ -35,9 +35,9 @@ impl<R: BufRead> Iterator for TagCountParser<R> {
 
         // Read the next line
         match self.reader.read_line(&mut line) {
-            Ok(0) => return None, // EOF
+            Ok(0) => None, // EOF
             Ok(_) => {
-                let fields: Vec<&str> = line.trim().split_whitespace().collect();
+                let fields: Vec<&str> = line.split_whitespace().collect();
                 if fields.len() != 3 {
                     return Some(Err(format!("Invalid line format: {}", line.trim())));
                 }
