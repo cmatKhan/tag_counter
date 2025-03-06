@@ -123,7 +123,7 @@ fn write_counts(
                     // if poisson_p is an error, then set it to 1.0
                     let enrichment_score = match enrichment_score {
                         Ok(score) => score,
-                        Err(_) => f32::NAN, // Now using NaN instead of 0.0
+                        Err(_) => f64::NAN, // Now using NaN instead of 0.0
                     };
                     let poisson_p = match poisson_p {
                         Ok(p) => p,
@@ -170,7 +170,7 @@ fn write_counts(
                     // if poisson_p is an error, then set it to 1.0
                     let enrichment_score = match enrichment_score {
                         Ok(score) => score,
-                        Err(_) => f32::NAN, // Now using NaN instead of 0.0
+                        Err(_) => f64::NAN, // Now using NaN instead of 0.0
                     };
                     let poisson_p = match poisson_p {
                         Ok(p) => p,
