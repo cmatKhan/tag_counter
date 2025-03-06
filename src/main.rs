@@ -59,7 +59,7 @@ fn write_counts(
     background_counts: Option<&HashMap<(String, u32, u32), u32>>,
     background_tag_total: Option<u32>,
 ) -> Result<(), io::Error> {
-    const PSEUDOCOUNT: f32 = 0.1;
+    const PSEUDOCOUNT: f64 = 0.1;
 
     // Create output file handles for each replicate
     let mut output_files: Vec<(String, File)> = replicate_paths
