@@ -1,4 +1,4 @@
-use statrs::distribution::{DiscreteCDF, Poisson};
+use statrs::distribution::{Discrete, DiscreteCDF, Poisson};
 
 /// Errors that can occur when computing the Poisson p-value.
 #[derive(Debug)]
@@ -16,13 +16,16 @@ pub enum EnrichmentError {
 
 /// Represents total tag counts for control and treatment conditions.
 pub struct RegionStats {
+    // the total control and treatment tags are reasonably stored as u32. They do
+    // get cast to f64 for the enrichment and pvalue calculations. This is also why
+    // pseudocount is stored as f64, though it does not need that level of precision.
     total_control_tags: u32,
     total_treatment_tags: u32,
-    pub pseudocount: f32,
+    pub pseudocount: f64,
 }
 
 impl RegionStats {
-    pub fn new(total_control_tags: u32, total_treatment_tags: u32, pseudocount: f32) -> Self {
+    pub fn new(total_control_tags: u32, total_treatment_tags: u32, pseudocount: f64) -> Self {
         RegionStats {
             total_control_tags,
             total_treatment_tags,
@@ -50,16 +53,21 @@ impl RegionStats {
             return Err(PoissonPvalError::DivisionByZero);
         }
 
-        let hop_ratio = self.total_treatment_tags as f32 / self.total_control_tags as f32;
-        let mu = (control_tags as f32 + self.pseudocount) * hop_ratio;
+        // cast to f64 to avoid overflow. Additionally, the poisson function requires
+        // f64 as input for the poisson parameter mu. treatment_tags is set to a u64
+        // and the result is f64 in precision.
+        let hop_ratio = self.total_treatment_tags as f64 / self.total_control_tags as f64;
+        let mu = (control_tags as f64 + self.pseudocount) * hop_ratio;
 
         if mu <= 0.0 {
             return Err(PoissonPvalError::InvalidPoissonParameter);
         }
 
         let poisson =
-            Poisson::new(mu.into()).map_err(|_| PoissonPvalError::InvalidPoissonParameter)?;
-        let p_val = 1.0 - poisson.cdf(treatment_tags as u64);
+            Poisson::new(mu).map_err(|_| PoissonPvalError::InvalidPoissonParameter)?;
+
+        let x = treatment_tags as u64;
+        let p_val = (1.0 - poisson.cdf(x)) + poisson.pmf(x);
 
         Ok(p_val)
     }
@@ -69,13 +77,14 @@ impl RegionStats {
         &self,
         control_tags: u32,
         treatment_tags: u32,
-    ) -> Result<f32, EnrichmentError> {
+    ) -> Result<f64, EnrichmentError> {
+        // see poisson_pval() for a discussion on precision
         if self.total_control_tags == 0 || self.total_treatment_tags == 0 {
             return Err(EnrichmentError::DivisionByZero);
         }
 
-        let numerator = treatment_tags as f32 / self.total_treatment_tags as f32;
-        let denominator = (control_tags as f32 + self.pseudocount) / self.total_control_tags as f32;
+        let numerator = treatment_tags as f64 / self.total_treatment_tags as f64;
+        let denominator = (control_tags as f64 + self.pseudocount) / self.total_control_tags as f64;
 
         let enrichment = numerator / denominator;
 
@@ -141,7 +150,7 @@ mod tests {
         assert!(result.is_ok());
         let p_val = result.unwrap();
         println!("Test 1 - Poisson p-value: {:.6}", p_val);
-        assert!((p_val - 0.01515723).abs() < 1e-6);
+        assert!((p_val - 0.093252).abs() < 1e-6);
     }
 
     #[test]
@@ -156,7 +165,7 @@ mod tests {
         assert!(result.is_ok());
         let p_val = result.unwrap();
         println!("Test 2 - Poisson p-value: {:.6}", p_val);
-        assert!((p_val - 0.003815442).abs() < 1e-6);
+        assert!((p_val - 0.019607).abs() < 1e-6);
     }
 
     #[test]
