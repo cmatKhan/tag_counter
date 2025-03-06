@@ -63,8 +63,7 @@ impl RegionStats {
             return Err(PoissonPvalError::InvalidPoissonParameter);
         }
 
-        let poisson =
-            Poisson::new(mu).map_err(|_| PoissonPvalError::InvalidPoissonParameter)?;
+        let poisson = Poisson::new(mu).map_err(|_| PoissonPvalError::InvalidPoissonParameter)?;
 
         let x = treatment_tags as u64;
         let p_val = (1.0 - poisson.cdf(x)) + poisson.pmf(x);
