@@ -132,8 +132,14 @@ fn write_counts(
 
                     writeln!(
                         file,
-                        "{}\t{}\t{}\t{}\t{:.6}\t{:.6}",
-                        chr, region.start, region.end, count, enrichment_score, poisson_p
+                        "{}\t{}\t{}\t{}\t{}\t{:.17}\t{:.17}",
+                        chr,
+                        region.start,
+                        region.end,
+                        background_count,
+                        count,
+                        enrichment_score,
+                        -poisson_p.log10()
                     )?;
                 } else {
                     writeln!(file, "{}\t{}\t{}\t{}", chr, region.start, region.end, count)?;
@@ -178,8 +184,14 @@ fn write_counts(
                     };
                     writeln!(
                         file,
-                        "{}\t{}\t{}\t{}\t{:.6}\t{:.6}",
-                        chr, region.start, region.end, combined_count, enrichment_score, poisson_p
+                        "{}\t{}\t{}\t{}\t{}\t{:.17}\t{:.17}",
+                        chr,
+                        region.start,
+                        region.end,
+                        background_count,
+                        combined_count,
+                        enrichment_score,
+                        -poisson_p.log10()
                     )?;
                 } else {
                     writeln!(
