@@ -68,7 +68,21 @@ impl RegionStats {
         let x = treatment_tags as u64;
         let p_val = (1.0 - poisson.cdf(x)) + poisson.pmf(x);
 
-        Ok(p_val)
+        // Check if it's out of bounds before clamping
+        if p_val > 1.0 {
+            eprintln!(
+                "⚠️  Warning: computed Poisson p-value exceeds 1.0 ({:.17}) for region (control_tags={}, treatment_tags={}, mu={:.6})",
+                p_val, control_tags, treatment_tags, mu
+            );
+        } else if p_val < 0.0 {
+            eprintln!(
+                "⚠️  Warning: computed Poisson p-value is negative ({:.17}) for region (control_tags={}, treatment_tags={}, mu={:.6})",
+                p_val, control_tags, treatment_tags, mu
+            );
+        }
+
+        // Note that this clamps the p-value to the range [0, 1]. This is not strictly necessary
+        Ok(p_val.min(1.0).max(0.0))
     }
 
     /// Computes the enrichment score for a given region.
