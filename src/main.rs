@@ -139,7 +139,7 @@ fn write_counts(
                         count,
                         background_count,
                         enrichment_score,
-                        -1 * poisson_p.log10()
+                        -1.0 * poisson_p.log10()
                     )?;
                 } else {
                     writeln!(file, "{}\t{}\t{}\t{}", chr, region.start, region.end, count)?;
@@ -191,7 +191,7 @@ fn write_counts(
                         combined_count,
                         background_count,
                         enrichment_score,
-                        -1 * poisson_p.log10()
+                        -1.0 * poisson_p.log10()
                     )?;
                 } else {
                     writeln!(
