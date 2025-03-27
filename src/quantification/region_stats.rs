@@ -82,7 +82,7 @@ impl RegionStats {
         }
 
         // Note that this clamps the p-value to the range [0, 1]. This is not strictly necessary
-        Ok(p_val.min(1.0).max(0.0))
+        Ok(p_val.clamp(0.0, 1.0))
     }
 
     /// Computes the enrichment score for a given region.
