@@ -402,20 +402,14 @@ impl CountableRegionTree {
         Ok(counts)
     }
 
-    /// Returns total counts for each chromosome.
+    /// Returns the total counts across all chromosomes and replicates.
     ///
-    /// This method iterates over all chromosomes in the interval tree and sums
-    /// the replicate-specific counts for each non-overlapping region.
-    ///
-    /// # Returns
-    ///
-    /// A `HashMap<String, Vec<u32>>` where the key is the chromosome name
-    /// and the value is a vector of counts per replicate.
+    /// This is the sum of the values returned by `get_chromosome_totals()`.
     ///
     /// # Example
     ///
     /// ```rust
-    /// use std::collections::{HashMap};
+    /// use std::collections::HashMap;
     /// use tag_counter::{CountableRegionTree, GenomicInterval, CountableRegionMetadata};
     ///
     /// let mut region_map: HashMap<String, Vec<GenomicInterval<CountableRegionMetadata>>> = HashMap::new();
@@ -453,12 +447,11 @@ impl CountableRegionTree {
     /// region_tree.construct(&region_map);
     ///
     /// region_tree.add_counts("chr1", 100, 120, 5, 0).unwrap();
-    /// region_tree.add_counts("chr1", 199, 200, 3, 0).unwrap();
+    /// region_tree.add_counts("chr1", 199, 200, 3, 2).unwrap();
     /// region_tree.add_counts("chr2", 3, 5, 10, 0).unwrap();
     ///
-    /// let chr_totals = region_tree.get_chromosome_totals();
-    /// assert_eq!(chr_totals["chr1"], vec![8, 0, 0]);
-    /// assert_eq!(chr_totals["chr2"], vec![10, 0, 0]);
+    /// let total = region_tree.get_total_counts();
+    /// assert_eq!(total, vec![15, 0, 3]);
     /// ```
     pub fn get_chromosome_totals(&self) -> HashMap<String, Vec<u32>> {
         let mut result = HashMap::new();
@@ -583,16 +576,29 @@ mod tests {
             let control_counts = control_tree.get_counts("chr1", start, end).unwrap();
             let treatment_counts = treatment_tree.get_counts("chr1", start, end).unwrap();
 
-            println!(
-                "Region: chr1:{}-{} | Control: {:?} | Treatment: {:?}",
-                start, end, control_counts, treatment_counts
-            );
-
             // Ensure control counts match expected
             assert_eq!(control_counts[0], expected.0);
 
             // Ensure treatment is control +2 for each count
             assert_eq!(treatment_counts[0], expected.1);
         }
+
+        // Step 6: Assert total counts per chromosome
+        let control_chr_totals = control_tree.get_chromosome_totals();
+        let treatment_chr_totals = treatment_tree.get_chromosome_totals();
+
+        assert_eq!(control_chr_totals["chr1"], vec![23, 0, 0]);
+        assert_eq!(treatment_chr_totals["chr1"], vec![33, 0, 0]);
+
+        // Other chromosomes had no counts added
+        for chr in ["chr2", "chr3"] {
+            assert_eq!(control_chr_totals[chr], vec![0, 0, 0]);
+            assert_eq!(treatment_chr_totals[chr], vec![0, 0, 0]);
+        }
+
+        // Step 7: Assert overall totals
+        assert_eq!(control_tree.get_total_counts(), vec![23, 0, 0]);
+        assert_eq!(treatment_tree.get_total_counts(), vec![33, 0, 0]);
+
     }
 }
