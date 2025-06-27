@@ -209,12 +209,16 @@ fn write_counts(
 }
 
 /// Write total counts per replicate and combined to a file inside the TF-specific subdirectory
-fn write_total_counts(output_dir: &Path, totals: &HashMap<String, u64>, region_total: &HashMap<String, u32>) -> io::Result<()> {
+fn write_total_counts(
+    output_dir: &Path,
+    totals: &HashMap<String, u64>,
+    region_total: &HashMap<String, u32>,
+) -> io::Result<()> {
     let output_path = output_dir.join("total_tag_counts.tsv");
     let mut file = File::create(output_path)?;
 
     for (filename, total) in totals {
-        let region_total =region_total.get(filename).copied().unwrap_or(0); 
+        let region_total = region_total.get(filename).copied().unwrap_or(0);
         let output_filename = generate_output_filename(filename);
         writeln!(file, "{}\t{}\t{}", output_filename, total, region_total)?;
     }
@@ -302,7 +306,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         )?;
 
         // Write total tag counts for all replicates
-        write_total_counts(&tf_output_dir, &total_counts_map, &region_totals_by_replicate)?;
+        write_total_counts(
+            &tf_output_dir,
+            &total_counts_map,
+            &region_totals_by_replicate,
+        )?;
     }
 
     println!(

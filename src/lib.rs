@@ -599,6 +599,5 @@ mod tests {
         // Step 7: Assert overall totals
         assert_eq!(control_tree.get_total_counts(), vec![23, 0, 0]);
         assert_eq!(treatment_tree.get_total_counts(), vec![33, 0, 0]);
-
     }
 }
