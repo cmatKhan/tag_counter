@@ -31,8 +31,8 @@ To run **tag_counter**:
 
 ```bash
 tag_counter \
-  --treatment sample1.bam sample2.bam sample3.bam \
-  --control control1.bam control2.bam \
+  --bed-file synthetic_genome_promoters.bed \
+  --json-file input.json
   --regions promoters.bed \
   --output example_tag_counter_output 
 ```

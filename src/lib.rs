@@ -184,10 +184,11 @@ impl CountableRegionTree {
         }
     }
 
-    /// Adds count data to overlapping genomic regions in the interval tree.
+    /// Adds count data to a single, non-overlapping genomic interval in the
+    /// interval tree
     ///
-    /// This function updates the count of either treatment or control data for a specific replicate
-    /// in all regions overlapping the given range.
+    /// This function updates the count of a single genomic interval. If the interval
+    /// over which the count applies overlaps multiple regions, an error is raised.
     ///
     /// # Example
     ///
@@ -400,6 +401,102 @@ impl CountableRegionTree {
 
         Ok(counts)
     }
+
+    /// Returns total counts for each chromosome.
+    ///
+    /// This method iterates over all chromosomes in the interval tree and sums
+    /// the replicate-specific counts for each non-overlapping region.
+    ///
+    /// # Returns
+    ///
+    /// A `HashMap<String, Vec<u32>>` where the key is the chromosome name
+    /// and the value is a vector of counts per replicate.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::collections::{HashMap};
+    /// use tag_counter::{CountableRegionTree, GenomicInterval, CountableRegionMetadata};
+    ///
+    /// let mut region_map: HashMap<String, Vec<GenomicInterval<CountableRegionMetadata>>> = HashMap::new();
+    ///
+    /// // Create regions for chr1 and chr2
+    /// region_map.insert(
+    ///     "chr1".to_string(),
+    ///     vec![GenomicInterval {
+    ///         chr: "chr1".to_string(),
+    ///         start: 100,
+    ///         end: 200,
+    ///         strand: None,
+    ///         data: Some(CountableRegionMetadata {
+    ///             counts: vec![0; 3],
+    ///             coverage: None,
+    ///         }),
+    ///     }]
+    /// );
+    ///
+    /// region_map.insert(
+    ///     "chr2".to_string(),
+    ///     vec![GenomicInterval {
+    ///         chr: "chr2".to_string(),
+    ///         start: 0,
+    ///         end: 10,
+    ///         strand: None,
+    ///         data: Some(CountableRegionMetadata {
+    ///             counts: vec![0; 3],
+    ///             coverage: None,
+    ///         }),
+    ///     }]
+    /// );
+    ///
+    /// let mut region_tree = CountableRegionTree::new(3);
+    /// region_tree.construct(&region_map);
+    ///
+    /// region_tree.add_counts("chr1", 100, 120, 5, 0).unwrap();
+    /// region_tree.add_counts("chr1", 199, 200, 3, 0).unwrap();
+    /// region_tree.add_counts("chr2", 3, 5, 10, 0).unwrap();
+    ///
+    /// let chr_totals = region_tree.get_chromosome_totals();
+    /// assert_eq!(chr_totals["chr1"], vec![8, 0, 0]);
+    /// assert_eq!(chr_totals["chr2"], vec![10, 0, 0]);
+    /// ```
+    pub fn get_chromosome_totals(&self) -> HashMap<String, Vec<u32>> {
+        let mut result = HashMap::new();
+
+        for (chr, tree) in &self.trees {
+            let mut chr_counts = vec![0u32; self.n_replicates as usize];
+
+            // the `tree.find(0..u32::MAX)` gets all intervals in the tree
+            for entry in tree.find(0..u32::MAX) {
+                if let Some(metadata) = &entry.data().data {
+                    for (i, &count) in metadata.counts.iter().enumerate() {
+                        chr_counts[i] += count;
+                    }
+                }
+            }
+
+            result.insert(chr.clone(), chr_counts);
+        }
+
+        result
+    }
+
+    /// Returns the total counts across all chromosomes and replicates.
+    /// This is the sum of the values in `get_chromosome_totals`.
+    pub fn get_total_counts(&self) -> Vec<u32> {
+        let mut total = vec![0u32; self.n_replicates as usize];
+
+        for chr_counts in self.get_chromosome_totals().values() {
+            for (i, &count) in chr_counts.iter().enumerate() {
+                total[i] += count;
+            }
+        }
+
+        total
+    }
+
+
+
 }
 
 #[cfg(test)]
