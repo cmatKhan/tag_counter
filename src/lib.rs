@@ -25,7 +25,7 @@ pub enum Strand {
 /// # Fields
 ///
 /// - `counts`: vector of replicate counts in same order
-///    as input
+///   as input
 /// - `coverage`: Coverage level categories.
 #[derive(Debug, Clone)]
 pub struct CountableRegionMetadata {
@@ -84,8 +84,8 @@ pub struct GenomicInterval<T> {
 ///
 /// - `trees`: A map from chromosome names to interval trees containing regions.
 /// - `region_map`: A map from chromosome names to vectors of regions. Eg,
-///    'chr1': [(0, 300), (5000, 6000), (5001, 6001), ...] Note: this map
-///    is for the regions explicitly provided by the user.
+///   'chr1': [(0, 300), (5000, 6000), (5001, 6001), ...] Note: this map
+///   is for the regions explicitly provided by the user.
 #[derive(Debug)]
 pub struct CountableRegionTree {
     /// Stores preprocessed, non-overlapping intervals for efficient querying.
