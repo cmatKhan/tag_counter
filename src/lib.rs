@@ -494,9 +494,6 @@ impl CountableRegionTree {
 
         total
     }
-
-
-
 }
 
 #[cfg(test)]
