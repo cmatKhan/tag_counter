@@ -14,7 +14,7 @@ use tag_counter::{CountableRegionMetadata, CountableRegionTree, GenomicInterval}
 #[derive(Parser, Debug)]
 #[command(about = "Process tag count data and compute region counts")]
 struct Args {
-    /// Path to the BED file of promoter regions
+    /// Path to the BED file of regions of interest
     #[arg(short, long)]
     bed_file: PathBuf,
 
