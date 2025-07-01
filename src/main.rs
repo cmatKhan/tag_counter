@@ -227,7 +227,8 @@ fn write_total_counts(
     // which is the sum of all the totals
     if totals.len() > 1 {
         let sum_total: u64 = totals.values().sum();
-        writeln!(file, "combined\t{}", sum_total)?;
+        let sum_region_total: u32 = region_total.values().sum();
+        writeln!(file, "combined\t{}\t{}", sum_total, sum_region_total)?;
     }
 
     Ok(())

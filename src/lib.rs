@@ -247,50 +247,45 @@ impl CountableRegionTree {
     /// assert_eq!(overlaps.len(), 1);
     /// assert_eq!(overlaps[0].data().data.as_ref().unwrap().counts[0], 8);
     /// ```
-    pub fn add_counts(
-        &mut self,
-        chrom: &str,
-        start: u32,
-        end: u32,
-        count: u32,
-        replicate_index: u8,
-    ) -> Result<(), String> {
-        // Check if the chromosome exists in the tree
-        let Some(tree) = self.trees.get_mut(chrom) else {
-            return Err(format!(
-                "CountableRegionTree.add_counts() error: Chromosome '{}' not found in the interval tree.",
-                chrom
-            ));
-        };
+pub fn add_counts(
+    &mut self,
+    chrom: &str,
+    start: u32,
+    end: u32,
+    count: u32,
+    replicate_index: u8,
+) -> Result<(), String> {
+    let Some(tree) = self.trees.get_mut(chrom) else {
+        return Err(format!(
+            "CountableRegionTree.add_counts() error: Chromosome '{}' not found in the interval tree.",
+            chrom
+        ));
+    };
 
-        // Raise error if replicate_index is out of bounds
-        // (data_type is unsigned, so a negative can't be passed. Same re: count)
-        if replicate_index >= self.n_replicates {
-            return Err(format!(
-                "Replicate index {} out of bounds.",
-                replicate_index
-            ));
-        }
-
-        // Find overlapping regions
-        let overlapping_regions: Vec<_> = tree.find(start..end).collect();
-
-        // If the length of the overlapping region is greater than 1, raise an error
-        if overlapping_regions.len() > 1 {
-            return Err(format!(
-                "Multiple overlapping regions found for {}: {:?}",
-                chrom, overlapping_regions
-            ));
-        }
-
-        // Update counts for each overlapping region
-        for mut entry in tree.find_mut(start..end) {
-            if let Some(region) = entry.data().data.as_mut() {
-                region.counts[replicate_index as usize] += count;
-            }
-        }
-        Ok(())
+    if replicate_index >= self.n_replicates {
+        return Err(format!(
+            "Replicate index {} out of bounds.",
+            replicate_index
+        ));
     }
+
+    // Collect overlapping entries (mutable) into a vector
+    let mut overlapping: Vec<_> = tree.find_mut(start..end).collect();
+
+    if overlapping.len() > 1 {
+        return Err(format!(
+            "Multiple overlapping regions found for {}: {:?}", chrom, overlapping
+        ));
+    }
+
+    if let Some(mut entry) = overlapping.pop() {
+        if let Some(region) = entry.data().data.as_mut() {
+            region.counts[replicate_index as usize] += count;
+        }
+    }
+
+    Ok(())
+}
 
     /// Returns overlapping regions for a query position.
     ///
@@ -456,23 +451,20 @@ impl CountableRegionTree {
     pub fn get_chromosome_totals(&self) -> HashMap<String, Vec<u32>> {
         let mut result = HashMap::new();
 
-        for (chr, tree) in &self.trees {
-            let mut chr_counts = vec![0u32; self.n_replicates as usize];
-
-            // the `tree.find(0..u32::MAX)` gets all intervals in the tree
-            for entry in tree.find(0..u32::MAX) {
-                if let Some(metadata) = &entry.data().data {
-                    for (i, &count) in metadata.counts.iter().enumerate() {
-                        chr_counts[i] += count;
-                    }
+        for chr in self.trees.keys() {
+            match self.get_counts(chr, 0, u32::MAX) {
+                Ok(counts) => {
+                    result.insert(chr.clone(), counts);
+                }
+                Err(e) => {
+                    eprintln!("Warning: failed to get counts for {}: {}", chr, e);
                 }
             }
-
-            result.insert(chr.clone(), chr_counts);
         }
 
         result
     }
+
 
     /// Returns the total counts across all chromosomes and replicates.
     /// This is the sum of the values in `get_chromosome_totals`.
