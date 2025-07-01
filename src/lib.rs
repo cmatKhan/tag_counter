@@ -31,7 +31,6 @@ pub enum Strand {
 pub struct CountableRegionMetadata {
     pub counts: Vec<u32>,
     pub coverage: Option<CoverageLevel>,
-    pub is_region: bool,
 }
 
 /// Represents an interval in the interval tree. GenomicIntervals are 0 indexed, half open,
@@ -59,7 +58,6 @@ pub struct CountableRegionMetadata {
 ///   data: Some(CountableRegionMetadata {
 ///     counts: vec![0, 3],
 ///     coverage: None,
-///     is_region: true,
 ///   }),
 /// };
 ///
@@ -138,7 +136,7 @@ impl CountableRegionTree {
     /// let interval_tree = tree.trees.get("chr1").expect("Interval tree should exist");
     ///
     /// // Verify that the tree contains the expected non-overlapping intervals
-    /// let expected_intervals = vec![(10, 30), (30, 50), (50, 70), (70, 80), (80, 90)];
+    /// let expected_intervals = vec![(10, 30), (30, 50), (50, 70), (80, 90)];
     /// let actual_intervals: Vec<_> = interval_tree
     ///     .find(0..u32::MAX)  // Fetch all stored intervals
     ///     .map(|entry| (entry.interval().start, entry.interval().end)) // Ensure direct field access
@@ -168,23 +166,24 @@ impl CountableRegionTree {
             let mut iter = btreeset.iter().peekable();
             while let Some(&seg_start) = iter.next() {
                 if let Some(&seg_end) = iter.peek() {
-                    let is_covered = intervals
+                    let is_in_regions = intervals
                         .iter()
-                        .any(|orig| seg_start >= orig.start && seg_end <= orig.end);
-                    tree.insert(
-                        seg_start..*seg_end,
-                        GenomicInterval {
-                            chr: chr.clone(),
-                            start: seg_start,
-                            end: *seg_end,
-                            strand: None,
-                            data: Some(CountableRegionMetadata {
-                                counts: vec![0; self.n_replicates as usize],
-                                coverage: None,
-                                is_region: is_covered,
-                            }),
-                        },
-                    );
+                        .any(|orig| seg_start >= orig.start && *seg_end <= orig.end);
+                    if is_in_regions {
+                        tree.insert(
+                            seg_start..*seg_end,
+                            GenomicInterval {
+                                chr: chr.clone(),
+                                start: seg_start,
+                                end: *seg_end,
+                                strand: None,
+                                data: Some(CountableRegionMetadata {
+                                    counts: vec![0; self.n_replicates as usize],
+                                    coverage: None,
+                                }),
+                            },
+                        );
+                    }
                 }
             }
         }
@@ -583,8 +582,10 @@ mod tests {
         let control_chr_totals = control_tree.get_chromosome_totals();
         let treatment_chr_totals = treatment_tree.get_chromosome_totals();
 
-        assert_eq!(control_chr_totals["chr1"], vec![23, 0, 0]);
-        assert_eq!(treatment_chr_totals["chr1"], vec![33, 0, 0]);
+        // note that this is 21/31 b/c the 2 counts from [250, 251) are not in
+        // the region_map
+        assert_eq!(control_chr_totals["chr1"], vec![21, 0, 0]);
+        assert_eq!(treatment_chr_totals["chr1"], vec![29, 0, 0]);
 
         // Other chromosomes had no counts added
         for chr in ["chr2", "chr3"] {
@@ -593,8 +594,8 @@ mod tests {
         }
 
         // Step 7: Assert overall totals
-        assert_eq!(control_tree.get_total_counts(), vec![23, 0, 0]);
-        assert_eq!(treatment_tree.get_total_counts(), vec![33, 0, 0]);
+        assert_eq!(control_tree.get_total_counts(), vec![21, 0, 0]);
+        assert_eq!(treatment_tree.get_total_counts(), vec![29, 0, 0]);
     }
 
     #[test]
