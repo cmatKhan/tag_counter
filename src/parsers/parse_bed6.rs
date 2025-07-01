@@ -22,7 +22,10 @@ use crate::{CountableRegionMetadata, GenomicInterval};
 pub fn parse_bed6<P: AsRef<Path>>(
     bed_path: P,
 ) -> Result<HashMap<String, Vec<GenomicInterval<CountableRegionMetadata>>>, String> {
-    let file = File::open(&bed_path).map_err(|e| format!("Failed to open file: {}", e))?;
+    let file = File::open(&bed_path).map_err(|e| {
+        let path = bed_path.as_ref();
+        format!("Failed to open file {}: {}", path.display(), e)
+    })?;
     let reader = io::BufReader::new(file);
     let mut region_map: HashMap<String, Vec<GenomicInterval<CountableRegionMetadata>>> =
         HashMap::new();

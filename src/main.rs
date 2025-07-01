@@ -266,34 +266,79 @@ fn main() -> Result<(), Box<dyn Error>> {
         let tf_output_dir = args.output_dir.join(tf);
         fs::create_dir_all(&tf_output_dir)?;
         let mut total_counts_map: HashMap<String, u64> = HashMap::new();
+        let mut region_counts_map: HashMap<String, u32> = HashMap::new();
 
         // Create a new CountableRegionTree for this TF
         let mut tree = CountableRegionTree::new(replicate_paths.len() as u8);
         tree.construct(&region_map);
 
+        for (chr, tree) in &tree.trees {
+            let mut intervals: Vec<_> = tree
+                .find(0..u32::MAX)
+                .map(|entry| entry.interval().clone())
+                .collect();
+
+            intervals.sort_by_key(|iv| iv.start);
+
+            for window in intervals.windows(2) {
+                let a = &window[0];
+                let b = &window[1];
+                assert!(
+                    a.end <= b.start,
+                    "Overlapping canonical intervals in tree for {chr}: {:?} and {:?}",
+                    a,
+                    b
+                );
+            }
+        }
+
         // Iterate over each replicate and add counts
+        // for (rep_index, path) in replicate_paths.iter().enumerate() {
+        //     let parser = TagCountParser::from_path(path)?;
+        //     total_counts_map.insert(path.clone(), 0);
+
+        //     for record in parser {
+        //         let (chr, start, end, count) = record?;
+        //         match tree.add_counts(&chr, start, end, count, rep_index as u8) {
+        //             Ok(_) => *total_counts_map.entry(path.to_string()).or_insert(0) += count as u64,
+        //             Err(e) => {
+        //                 eprintln!("Error: {}. This count is entirely discarded. Count cannot overlap multiple countable intervals.", e);
+        //                 continue;
+        //             }
+        //         }
+        //     }
+        // }
         for (rep_index, path) in replicate_paths.iter().enumerate() {
             let parser = TagCountParser::from_path(path)?;
             total_counts_map.insert(path.clone(), 0);
+            region_counts_map.insert(path.clone(), 0);
 
             for record in parser {
                 let (chr, start, end, count) = record?;
+
+                // Always increment the total count
+
                 match tree.add_counts(&chr, start, end, count, rep_index as u8) {
-                    Ok(_) => *total_counts_map.entry(path.to_string()).or_insert(0) += count as u64,
+                    Ok(added) if added > 0 => {
+                        *total_counts_map.entry(path.clone()).or_insert(0) += count as u64;
+                        *region_counts_map.entry(path.clone()).or_insert(0) += added;
+                    }
+                    Ok(_) => {
+                        *total_counts_map.entry(path.clone()).or_insert(0) += count as u64;
+                    }
                     Err(e) => {
                         eprintln!("Error: {}. This count is entirely discarded. Count cannot overlap multiple countable intervals.", e);
-                        continue;
                     }
                 }
             }
         }
 
-        // zip replicate_paths together with tree.get_total_counts() to region_totals_by_replicate
-        let region_totals_by_replicate: HashMap<String, u32> = replicate_paths
-            .iter()
-            .cloned()
-            .zip(tree.get_total_counts())
-            .collect();
+        // // zip replicate_paths together with tree.get_total_counts() to region_totals_by_replicate
+        // let region_totals_by_replicate: HashMap<String, u32> = replicate_paths
+        //     .iter()
+        //     .cloned()
+        //     .zip(tree.get_total_counts())
+        //     .collect();
 
         // Write replicate and combined counts
         write_counts(
@@ -307,11 +352,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         )?;
 
         // Write total tag counts for all replicates
-        write_total_counts(
-            &tf_output_dir,
-            &total_counts_map,
-            &region_totals_by_replicate,
-        )?;
+        write_total_counts(&tf_output_dir, &total_counts_map, &region_counts_map)?;
     }
 
     println!(

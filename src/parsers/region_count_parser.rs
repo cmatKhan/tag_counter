@@ -14,7 +14,10 @@ use std::path::Path;
 pub fn region_count_parser<P: AsRef<Path>>(
     file_path: P,
 ) -> Result<HashMap<(String, u32, u32), u32>, String> {
-    let file = File::open(&file_path).map_err(|e| format!("Failed to open file: {}", e))?;
+    let file = File::open(&file_path).map_err(|e| {
+        let path = file_path.as_ref();
+        format!("Failed to open file {}: {}", path.display(), e)
+    })?;
     let reader = io::BufReader::new(file);
     let mut region_counts: HashMap<(String, u32, u32), u32> = HashMap::new();
 

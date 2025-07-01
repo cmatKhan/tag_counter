@@ -31,6 +31,7 @@ pub enum Strand {
 pub struct CountableRegionMetadata {
     pub counts: Vec<u32>,
     pub coverage: Option<CoverageLevel>,
+    pub is_region: bool,
 }
 
 /// Represents an interval in the interval tree. GenomicIntervals are 0 indexed, half open,
@@ -58,6 +59,7 @@ pub struct CountableRegionMetadata {
 ///   data: Some(CountableRegionMetadata {
 ///     counts: vec![0, 3],
 ///     coverage: None,
+///     is_region: true,
 ///   }),
 /// };
 ///
@@ -166,6 +168,9 @@ impl CountableRegionTree {
             let mut iter = btreeset.iter().peekable();
             while let Some(&seg_start) = iter.next() {
                 if let Some(&seg_end) = iter.peek() {
+                    let is_covered = intervals
+                        .iter()
+                        .any(|orig| seg_start >= orig.start && seg_end <= orig.end);
                     tree.insert(
                         seg_start..*seg_end,
                         GenomicInterval {
@@ -176,6 +181,7 @@ impl CountableRegionTree {
                             data: Some(CountableRegionMetadata {
                                 counts: vec![0; self.n_replicates as usize],
                                 coverage: None,
+                                is_region: is_covered,
                             }),
                         },
                     );
@@ -254,12 +260,12 @@ impl CountableRegionTree {
         end: u32,
         count: u32,
         replicate_index: u8,
-    ) -> Result<(), String> {
+    ) -> Result<u32, String> {
         let Some(tree) = self.trees.get_mut(chrom) else {
             return Err(format!(
-            "CountableRegionTree.add_counts() error: Chromosome '{}' not found in the interval tree.",
-            chrom
-        ));
+                "CountableRegionTree.add_counts() error: Chromosome '{}' not found in the interval tree.",
+                chrom
+            ));
         };
 
         if replicate_index >= self.n_replicates {
@@ -269,23 +275,24 @@ impl CountableRegionTree {
             ));
         }
 
-        // Collect overlapping entries (mutable) into a vector
         let mut overlapping: Vec<_> = tree.find_mut(start..end).collect();
 
         if overlapping.len() > 1 {
             return Err(format!(
-                "Multiple overlapping regions found for {}: {:?}",
-                chrom, overlapping
+                "Multiple overlapping regions found for {}:[{}, {}): {:?}",
+                chrom, start, end, overlapping
             ));
         }
 
         if let Some(mut entry) = overlapping.pop() {
             if let Some(region) = entry.data().data.as_mut() {
                 region.counts[replicate_index as usize] += count;
+                // count successfully added
+                return Ok(count);
             }
         }
-
-        Ok(())
+        // no overlapping region found, so no count added. However, no error
+        Ok(0)
     }
 
     /// Returns overlapping regions for a query position.
@@ -588,5 +595,146 @@ mod tests {
         // Step 7: Assert overall totals
         assert_eq!(control_tree.get_total_counts(), vec![23, 0, 0]);
         assert_eq!(treatment_tree.get_total_counts(), vec![33, 0, 0]);
+    }
+
+    #[test]
+    fn test_single_region_single_count() {
+        let mut tree = CountableRegionTree::new(1);
+        let mut region_map = HashMap::new();
+
+        region_map.insert(
+            "chr1".to_string(),
+            vec![GenomicInterval {
+                chr: "chr1".to_string(),
+                start: 100,
+                end: 200,
+                strand: None,
+                data: Some(CountableRegionMetadata {
+                    counts: vec![0; 1],
+                    coverage: None,
+                }),
+            }],
+        );
+
+        tree.construct(&region_map);
+        tree.add_counts("chr1", 150, 160, 10, 0).unwrap();
+
+        assert_eq!(tree.get_total_counts(), vec![10]);
+    }
+
+    #[test]
+    fn test_no_matching_region() {
+        let mut tree = CountableRegionTree::new(1);
+        let mut region_map = HashMap::new();
+
+        region_map.insert(
+            "chr1".to_string(),
+            vec![GenomicInterval {
+                chr: "chr1".to_string(),
+                start: 100,
+                end: 200,
+                strand: None,
+                data: Some(CountableRegionMetadata {
+                    counts: vec![0; 1],
+                    coverage: None,
+                }),
+            }],
+        );
+
+        tree.construct(&region_map);
+
+        let result = tree.add_counts("chr1", 250, 300, 5, 0);
+        assert_eq!(result.unwrap(), 0);
+        assert_eq!(tree.get_total_counts(), vec![0]);
+    }
+
+    #[test]
+    fn test_multiple_overlapping_regions_error() {
+        let mut tree = CountableRegionTree::new(1);
+        let mut region_map = HashMap::new();
+
+        region_map.insert(
+            "chr1".to_string(),
+            vec![
+                GenomicInterval {
+                    chr: "chr1".to_string(),
+                    start: 100,
+                    end: 200,
+                    strand: None,
+                    data: Some(CountableRegionMetadata {
+                        counts: vec![0; 1],
+                        coverage: None,
+                    }),
+                },
+                GenomicInterval {
+                    chr: "chr1".to_string(),
+                    start: 150,
+                    end: 250,
+                    strand: None,
+                    data: Some(CountableRegionMetadata {
+                        counts: vec![0; 1],
+                        coverage: None,
+                    }),
+                },
+            ],
+        );
+
+        tree.construct(&region_map);
+        let result = tree.add_counts("chr1", 140, 180, 5, 0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_multiple_replicates() {
+        let mut tree = CountableRegionTree::new(2);
+        let mut region_map = HashMap::new();
+
+        region_map.insert(
+            "chr1".to_string(),
+            vec![GenomicInterval {
+                chr: "chr1".to_string(),
+                start: 0,
+                end: 100,
+                strand: None,
+                data: Some(CountableRegionMetadata {
+                    counts: vec![0; 2],
+                    coverage: None,
+                }),
+            }],
+        );
+
+        tree.construct(&region_map);
+        tree.add_counts("chr1", 10, 20, 5, 0).unwrap();
+        tree.add_counts("chr1", 30, 40, 3, 1).unwrap();
+
+        assert_eq!(tree.get_total_counts(), vec![5, 3]);
+    }
+
+    #[test]
+    fn test_interval_edges() {
+        let mut tree = CountableRegionTree::new(1);
+        let mut region_map = HashMap::new();
+
+        region_map.insert(
+            "chr1".to_string(),
+            vec![GenomicInterval {
+                chr: "chr1".to_string(),
+                start: 100,
+                end: 200,
+                strand: None,
+                data: Some(CountableRegionMetadata {
+                    counts: vec![0; 1],
+                    coverage: None,
+                }),
+            }],
+        );
+
+        tree.construct(&region_map);
+
+        assert_eq!(tree.add_counts("chr1", 100, 100, 1, 0).unwrap(), 0);
+        assert_eq!(tree.add_counts("chr1", 99, 100, 1, 0).unwrap(), 0);
+        assert_eq!(tree.add_counts("chr1", 100, 101, 1, 0).unwrap(), 1);
+
+        assert_eq!(tree.get_total_counts(), vec![1]);
     }
 }

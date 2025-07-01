@@ -20,7 +20,10 @@ impl TagCountParser<io::BufReader<File>> {
     /// * `Ok(TagCountParser)` if the file is opened successfully.
     /// * `Err(String)` if there is an issue opening the file.
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, String> {
-        let file = File::open(path.as_ref()).map_err(|e| format!("Failed to open file: {}", e))?;
+        let file = File::open(&path).map_err(|e| {
+            let path = path.as_ref();
+            format!("Failed to open file {}: {}", path.display(), e)
+        })?;
         let reader = io::BufReader::new(file);
         Ok(TagCountParser { reader }) // Ensure type is inferred properly
     }

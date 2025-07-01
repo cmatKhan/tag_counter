@@ -1,0 +1,9 @@
+{
+    "CBF1x1": ["/home/chase/htcf_local/cc/recounting_hops/run_7380/hops/CBF1x1.txt"],
+    "CBF1x2": ["/home/chase/htcf_local/cc/recounting_hops/run_7380/hops/CBF1x2.txt"],
+    "GCR1":   ["/home/chase/htcf_local/cc/recounting_hops/run_7380/hops/GCR1.txt"],
+    "GCR2x1": ["/home/chase/htcf_local/cc/recounting_hops/run_7380/hops/GCR2x1.txt"],
+    "GCR2x2": ["/home/chase/htcf_local/cc/recounting_hops/run_7380/hops/GCR2x2.txt"],
+    "TYE7x1": ["/home/chase/htcf_local/cc/recounting_hops/run_7380/hops/TYE7x1.txt"],
+    "TYE7x2": ["/home/chase/htcf_local/cc/recounting_hops/run_7380/hops/TYE7x2.txt"]
+}
