@@ -281,7 +281,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 match tree.add_counts(&chr, start, end, count, rep_index as u8) {
                     Ok(_) => *total_counts_map.entry(path.to_string()).or_insert(0) += count as u64,
                     Err(e) => {
-                        eprintln!("Warning: {}", e);
+                        eprintln!("Error: {}. This count is entirely discarded. Count cannot overlap multiple countable intervals.", e);
                         continue;
                     }
                 }
