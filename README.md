@@ -120,29 +120,38 @@ The executable will be located in `target/release/tag_counter`.
 In the specified output directory, there will be subdirectories for each key in the
 input JSON file. Each subdirectory will contain the following files:
 
-### `<json_key>_region_counts.tsv`
+### `<sample_name>_region_counts.tsv`
 
-A TSV file with the following columns:
+A TSV file for each replicate/sample with the following columns:
 
+**Without background:**
 - `chrom`: Chromosome name
 - `start`: Start position of the region (0-based)
 - `end`: End position of the region (1-based)
-- `counts`: Number of 5′ end tags in the region of the input file from the JSON input
-- (optional) `background_counts`: Number of 5′ end tags in the region of the
-background file
-- (optional) `enrichment`: Ratio of counts to background_counts
-- (optional) `p_value`: poisson p-value of counts given background_counts
+- `counts`: Number of 5′ end tags in the region
 
-### `<json_key>_total_tag_counts.tsv`
+**With background:**
+- `chrom`: Chromosome name
+- `start`: Start position of the region (0-based)
+- `end`: End position of the region (1-based)
+- `counts`: Number of 5′ end tags in the region
+- `background_counts`: Number of 5′ end tags in the region from the background sample
+- `enrichment`: Ratio of normalized counts to normalized background counts
+- `p_value`: Poisson p-value testing enrichment significance
+
+### `combined_region_counts.tsv`
+
+Generated only when multiple replicates are provided. Contains the same column structure as individual files but with combined counts across all replicates for each region.
+
+### `total_tag_counts.tsv`
 
 A TSV file with the following columns:
 
-- `filename`: Name of the output file, e.g. `sample1_rep1_5p_cov.txt`
-- `total_counts`: Total number of 5′ end tags in the file
-- `region_counts`: Total number of 5′ end tags in the regions specified in the BED
-file. These are unique counts, meaning that if the region_file describes overlapping
-regions, then this `region_count` will count each tag in a region only once, regardless
-of how many regions it overlaps.
+- Column 1: Output filename (e.g., `sample1_region_counts.tsv`) or `combined` for the sum across replicates
+- Column 2: Total number of 5′ end tags across the entire genome for that sample
+- Column 3: Total number of 5′ end tags within the specified BED regions (unique counts - each tag counted only once even if it overlaps multiple regions)
+
+If multiple replicates are provided, an additional `combined` row shows the totals across all replicates.
 
 ## Comparison with Other Tools
 
